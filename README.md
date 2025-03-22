@@ -1,5 +1,7 @@
 # open-agents-builder-client
 
+**Note**: For a complete example project using this client, see the [Open Agents Builder Example](https://github.com/CatchTheTornado/open-agents-builder-example).
+
 A TypeScript client for the [Open Agents Builder](https://www.openagentsbuilder.com/) APIs, featuring modular classes for agents, keys, attachments, stats, audits, sessions, results, calendar, products, and orders. The library uses **Zod**-based schemas for type validation and can be easily extended to cover your application-specific needs.
 
 ## Features
@@ -23,12 +25,14 @@ A TypeScript client for the [Open Agents Builder](https://www.openagentsbuilder.
 
 ```bash
 npm install open-agents-builder-client
+npm install zod
 ```
 
 or
 
 ```bash
 yarn add open-agents-builder-client
+yarn add zod
 ```
 
 ### Usage
