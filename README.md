@@ -1,10 +1,6 @@
-Below is an example **README.md** that you can include with your **open-agents-builder-client** project. It outlines basic installation, usage examples, and references the **MIT license** as well as **CatchTheTornado**.
-
----
-
 # open-agents-builder-client
 
-A TypeScript client for the [Open Agents Builder](https://www.catchthetornado.com/) APIs, featuring modular classes for agents, keys, attachments, stats, audits, sessions, results, calendar, products, and orders. The library uses **Zod**-based schemas for type validation and can be easily extended to cover your application-specific needs.
+A TypeScript client for the [Open Agents Builder](https://www.openagentsbuilder.com/) APIs, featuring modular classes for agents, keys, attachments, stats, audits, sessions, results, calendar, products, and orders. The library uses **Zod**-based schemas for type validation and can be easily extended to cover your application-specific needs.
 
 ## Features
 
