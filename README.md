@@ -17,6 +17,7 @@ A TypeScript client for the [Open Agents Builder](https://www.openagentsbuilder.
   - Results & Sessions (`/api/result`, `/api/session`)  
   - Calendar Events (`/api/calendar`)  
   - Products & Orders (`/api/product`, `/api/order`)
+  - Memory & Vector Stores (`/api/memory/*`)
 - **Configurable** base URL, database ID hash, and API key.
 
 ## Getting Started
@@ -119,6 +120,42 @@ client.attachment.upsertAttachment({
     })
   })
     .then(() => console.log("Audit log created!"))
+    .catch(console.error);
+  ```
+
+- **Memory Operations**
+  ```ts
+  // Create a new vector store
+  client.memory.createStore("my-store")
+    .then(() => console.log("Store created!"))
+    .catch(console.error);
+
+  // List stores with pagination
+  client.memory.listStores({ limit: 10, offset: 0 })
+    .then(({ files }) => console.log("Stores:", files))
+    .catch(console.error);
+
+  // First generate embeddings for your text
+  const text = "Sample text to store";
+  client.memory.generateEmbeddings(text)
+    .then(({ embedding }) => {
+      // Then create a record using the generated embeddings
+      return client.memory.createRecord("my-store", {
+        id: "record-1",
+        content: text,
+        embedding: embedding,
+        metadata: { source: "example" }
+      });
+    })
+    .then(() => console.log("Record created with generated embeddings!"))
+    .catch(console.error);
+
+  // Search records using vector similarity
+  client.memory.listRecords("my-store", {
+    embeddingSearch: "search query",
+    topK: 5
+  })
+    .then(({ rows }) => console.log("Similar records:", rows))
     .catch(console.error);
   ```
 
