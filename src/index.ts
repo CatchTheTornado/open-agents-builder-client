@@ -596,7 +596,84 @@ export class OrderApi extends BaseClient {
 }
 
 /************************************************
- * 15) MASTER CLIENT
+ * 15) MEMORY API TYPES
+ ************************************************/
+export const vectorStoreEntrySchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  embedding: z.array(z.number()),
+  metadata: z.record(z.unknown()),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export type VectorStoreEntry = z.infer<typeof vectorStoreEntrySchema>;
+
+export interface VectorStoreMetadata {
+  file: string;
+  displayName: string;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+  lastAccessed?: string;
+}
+
+export interface PaginatedVectorStores {
+  files: VectorStoreMetadata[];
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  total: number;
+}
+
+export interface PaginatedRecords {
+  rows: Array<VectorStoreEntry & { similarity?: number }>;
+  total: number;
+  vectorSearchQuery?: string;
+}
+
+/************************************************
+ * 16) MEMORY API
+ ************************************************/
+export class MemoryApi extends BaseClient {
+  public async createStore(storeName: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/api/memory/create", "POST", { storeName });
+  }
+
+  public async listStores(params?: { limit?: number; offset?: number; query?: string }): Promise<PaginatedVectorStores> {
+    return this.request<PaginatedVectorStores>("/api/memory/query", "GET", null, params);
+  }
+
+  public async getStore(filename: string): Promise<VectorStoreEntry[]> {
+    return this.request<VectorStoreEntry[]>(`/api/memory/${filename}`, "GET");
+  }
+
+  public async deleteStore(filename: string): Promise<{ message: string; status: number }> {
+    return this.request<{ message: string; status: number }>(`/api/memory/${filename}`, "DELETE");
+  }
+
+  public async listRecords(
+    filename: string,
+    params?: { limit?: number; offset?: number; embeddingSearch?: string; topK?: number }
+  ): Promise<PaginatedRecords> {
+    return this.request<PaginatedRecords>(`/api/memory/${filename}/records`, "GET", null, params);
+  }
+
+  public async createRecord(filename: string, record: VectorStoreEntry): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/api/memory/${filename}/records`, "POST", record);
+  }
+
+  public async deleteRecord(filename: string, recordId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/memory/${filename}/records/${recordId}`, "DELETE");
+  }
+
+  public async generateEmbeddings(content: string): Promise<{ embedding: number[] }> {
+    return this.request<{ embedding: number[] }>("/api/memory/embeddings", "POST", { content });
+  }
+}
+
+/************************************************
+ * 17) MASTER CLIENT
  ************************************************/
 export class OpenAgentsBuilderClient {
   public agent: AgentApi;
@@ -609,6 +686,7 @@ export class OpenAgentsBuilderClient {
   public calendar: CalendarApi;
   public product: ProductApi;
   public order: OrderApi;
+  public memory: MemoryApi;
 
   constructor(config: OpenAgentsConfig) {
     this.agent = new AgentApi(config);
@@ -621,6 +699,7 @@ export class OpenAgentsBuilderClient {
     this.calendar = new CalendarApi(config);
     this.product = new ProductApi(config);
     this.order = new OrderApi(config);
+    this.memory = new MemoryApi(config);
   }
 }
 
