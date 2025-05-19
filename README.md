@@ -17,6 +17,7 @@ A TypeScript client for the [Open Agents Builder](https://www.openagentsbuilder.
   - Results & Sessions (`/api/result`, `/api/session`)  
   - Calendar Events (`/api/calendar`)  
   - Products & Orders (`/api/product`, `/api/order`)
+  - Chat (`/api/chat`)  
   - Memory & Vector Stores (`/api/memory/*`)
 - **Configurable** base URL, database ID hash, and API key.
 
