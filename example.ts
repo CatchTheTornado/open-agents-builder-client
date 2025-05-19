@@ -133,7 +133,7 @@ async function example4() {
     })) {
       if (chunk.type === 'text') {
         collectedText += chunk.content;
-        console.log("Partial response:", collectedText);
+        process.stdout.write(chunk.content);
       }
     }
     console.log("Final response:", collectedText);
@@ -150,7 +150,7 @@ async function example4() {
     })) {
       if (chunk.type === 'text') {
         collectedText += chunk.content;
-        console.log("Follow-up partial response:", collectedText);
+        process.stdout.write(chunk.content);
       }
     }
     console.log("Follow-up final response:", collectedText);
@@ -211,13 +211,19 @@ async function example5() {
 // Run the examples
 async function main() {
   console.log("Running Example 1...");
-//  await example1();
+  await example1();
   
   console.log("Running Example 2...");
-//  await example2();
+  await example2();
   
   console.log("Running Example 3...");
-await example3();
+  await example3();
+
+  console.log("Running Example 4...");
+  await example4();
+
+  console.log("Running Example 5...");
+  await example5();
 }
 
 main().catch(console.error); 

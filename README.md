@@ -168,6 +168,49 @@ For **key creation** details (how `keyHash`, `keyLocatorHash`, etc. are derived)
 
 If you need to **upload a file** (e.g., to an attachment) with **multipart/form-data**, add a specialized method to your `AttachmentApi` that uses `FormData` instead of JSON.
 
+## Running the Examples
+
+This project includes an `example.ts` file with several usage scenarios. To run the examples:
+
+1. Install dependencies:
+   ```bash
+   yarn install
+   ```
+2. Set up your `.env` file with the required variables:
+   ```env
+   DATABASE_ID_HASH=your_database_id_hash
+   OPEN_AGENTS_BUILDER_API_KEY=your_api_key
+   AGENT_ID=your_agent_id
+   ```
+3. Place any local files needed for attachments (e.g., `sample.pdf`) in the project directory.
+4. Run the example script:
+   ```bash
+   yarn start
+   ```
+   or, if you want to run a specific example, comment/uncomment the relevant lines in `main()` in `example.ts`.
+
+### Example Descriptions
+
+- **Example 1: Basic chat with streaming**
+  
+  Streams the response from the agent chunk by chunk and prints it to the console.
+
+- **Example 2: Chat with streaming and partial updates**
+  
+  Streams the response and logs each token as it arrives, then prints the final response.
+
+- **Example 3: Chat with attachments (URL and local file)**
+  
+  Demonstrates sending both a remote image (via URL) and a local file (as a data URL) as attachments in a chat message.
+
+- **Example 4: Continuing a conversation with session ID**
+  
+  Shows how to maintain conversation context by reusing a session ID across multiple messages.
+
+- **Example 5: Maintaining conversation history with collectMessages**
+  
+  Demonstrates how to keep track of the full conversation history and continue the chat using the accumulated messages.
+
 ## Contributing
 
 Feel free to open **pull requests** or **issues** if you find bugs or want to add enhancements. We welcome community contributions to improve the library.
