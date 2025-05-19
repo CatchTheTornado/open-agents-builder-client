@@ -8,10 +8,11 @@
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
       "outDir": "./dist",
-      "rootDir": ".",
-      "moduleResolution": "node"
+      "rootDir": "src",
+      "moduleResolution": "node",
+      "declaration": true
     },
-    "include": ["*.ts"],
+    "include": ["src"],
     "exclude": ["node_modules", "dist"]
   }
   
