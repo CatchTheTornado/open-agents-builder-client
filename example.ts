@@ -1,6 +1,7 @@
 import { config } from 'dotenv';
 import { OpenAgentsBuilderClient, ChatMessage } from "./src/index";
 import { nanoid } from 'nanoid';
+import * as fs from 'fs';
 
 // Load environment variables from .env file
 config();
@@ -70,30 +71,46 @@ async function example2() {
   }
 }
 
-// Example 3: Chat with attachments
+// Example 3: Chat with attachments (URL and local file)
 async function example3() {
   const messages: ChatMessage[] = [
-    { role: "user", content: "What can you tell me about this image?" }
-  ];
-
-  try {
-    let collectedText = "";
-    for await (const chunk of client.chat.streamChat(messages, {
-      agentId: process.env.AGENT_ID!,
-      attachments: [
+    {
+      role: "user",
+      content: "What can you tell me about this image (URL) and this document (local file)?",
+      experimental_attachments: [
         {
           name: "screenshot.png",
           contentType: "image/png",
           url: "https://github.com/CatchTheTornado/open-agents-builder/raw/main/.readme-assets/screenshot-oab-2.png"
+        },
+        {
+          name: "sample.pdf",
+          file: "./sample.pdf" // Local file path (will be encoded as base64)
         }
       ]
+    }
+  ];
+
+  // Check if the local file exists before sending
+  const localFile = messages[0].experimental_attachments?.find(att => att.file);
+  if (localFile && !fs.existsSync(localFile.file)) {
+    console.error(`Local file not found: ${localFile.file}`);
+    return;
+  }
+
+  try {
+    let collectedText = "";
+    for await (const chunk of client.chat.streamChat(messages, {
+      agentId: process.env.AGENT_ID!
     })) {
       if (chunk.type === 'text') {
         collectedText += chunk.content;
-        console.log("Partial response:", collectedText);
+        process.stdout.write(chunk.content);
+      } else {
+        console.log('Custom chunk:', chunk);
       }
     }
-    console.log("Final response:", collectedText);
+    console.log("\nFinal response:", collectedText);
   } catch (error) {
     console.error("Error:", error);
   }

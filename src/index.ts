@@ -2,6 +2,8 @@
  *  1) IMPORTS
  ************************************************/
 import { z } from "zod";
+import * as fs from 'fs';
+import * as path from 'path';
 
 /************************************************
  *  2) DTO SCHEMAS & TYPES (Zod-based)
@@ -78,7 +80,9 @@ export type AttachmentDTO = z.infer<typeof attachmentDTOSchema>;
 export const chatAttachmentSchema = z.object({
   name: z.string().optional(),
   contentType: z.string().optional(),
-  url: z.string().url()
+  url: z.string().url().optional(),
+  base64: z.string().optional(), // base64-encoded content
+  file: z.any().optional() // local file path or File/Blob (Node.js: string path)
 });
 export type ChatAttachment = z.infer<typeof chatAttachmentSchema>;
 
@@ -86,7 +90,8 @@ export const chatMessageSchema = z.object({
   role: z.string(),
   content: z.string(),
   name: z.string().optional(),
-  functionCall: z.any().optional()
+  functionCall: z.any().optional(),
+  experimental_attachments: z.array(chatAttachmentSchema).optional()
 });
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
@@ -658,15 +663,43 @@ export class ChatApi extends BaseClient {
       ...(options.headers || {})
     };
 
-    const body: any = {
-      messages
-    };
+    // Deep copy messages to avoid mutating input
+    const messagesCopy: ChatMessage[] = JSON.parse(JSON.stringify(messages));
 
-    if (options.attachments && options.attachments.length > 0) {
-      body.experimental_attachments = options.attachments;
+    // Process attachments: encode as base64 if file is present, and set url as data URL
+    for (const msg of messagesCopy) {
+      if (msg.experimental_attachments && Array.isArray(msg.experimental_attachments)) {
+        for (const att of msg.experimental_attachments) {
+          if (att.file && !att.url) {
+            // Node.js: att.file is a string path
+            const filePath = att.file;
+            try {
+              const fileBuffer = await fs.promises.readFile(filePath);
+              // Optionally set contentType if not set
+              let mime = att.contentType;
+              if (!mime) {
+                const ext = path.extname(filePath).toLowerCase();
+                if (ext === '.png') mime = 'image/png';
+                else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
+                else if (ext === '.pdf') mime = 'application/pdf';
+                else mime = 'application/octet-stream';
+                att.contentType = mime;
+              }
+              const base64 = fileBuffer.toString('base64');
+              att.url = `data:${mime};base64,${base64}`;
+            } catch (err) {
+              throw new Error(`Failed to read attachment file: ${filePath} - ${(err as Error).message}`);
+            }
+            delete att.file;
+            if ('base64' in att) delete att.base64;
+          }
+        }
+      }
     }
 
-    console.log("Sending body: ", body);
+    const body: any = {
+      messages: messagesCopy
+    };
 
     const resp = await fetch(url, {
       method: "POST",
