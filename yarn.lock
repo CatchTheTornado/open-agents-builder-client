@@ -96,11 +96,6 @@ nanoid@^5.1.5:
   resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-5.1.5.tgz#f7597f9d9054eb4da9548cdd53ca70f1790e87de"
   integrity sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==
 
-open-agents-builder-client@latest:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/open-agents-builder-client/-/open-agents-builder-client-1.1.0.tgz#5adaf9bba61913e74bcc56403dbfa6dcdf6e8b6f"
-  integrity sha512-h6skcSlRvZpU7Gl99fanXH6ZSwZwCD2Nv7JWRQJnTr2EWzSRjQ4ItS+SVOuPOCxh3pu3afH82z5bnE+OMMoqmw==
-
 ts-node@^10.9.2:
   version "10.9.2"
   resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-10.9.2.tgz#70f021c9e185bccdca820e26dc413805c101c71f"
