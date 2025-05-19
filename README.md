@@ -168,6 +168,107 @@ For **key creation** details (how `keyHash`, `keyLocatorHash`, etc. are derived)
 
 If you need to **upload a file** (e.g., to an attachment) with **multipart/form-data**, add a specialized method to your `AttachmentApi` that uses `FormData` instead of JSON.
 
+## Chat API Usage
+
+The client provides a flexible chat API that supports streaming responses, collecting messages, and sending attachments (including both remote URLs and local files).
+
+### Sending a Chat Message with Attachments
+
+You can attach files to your chat messages in two ways:
+- **Remote URL:** Provide a `url` property pointing to the file.
+- **Local file:** Provide a `file` property with the local file path. The client will read and encode the file as a data URL automatically.
+
+```ts
+import { OpenAgentsBuilderClient, ChatMessage } from "open-agents-builder-client";
+import * as fs from 'fs';
+
+const client = new OpenAgentsBuilderClient({
+  baseUrl: "https://app.openagentsbuilder.com",
+  databaseIdHash: process.env.DATABASE_ID_HASH!,
+  apiKey: process.env.OPEN_AGENTS_BUILDER_API_KEY!
+});
+
+const messages: ChatMessage[] = [
+  {
+    role: "user",
+    content: "What can you tell me about this image (URL) and this document (local file)?",
+    experimental_attachments: [
+      {
+        name: "screenshot.png",
+        contentType: "image/png",
+        url: "https://github.com/CatchTheTornado/open-agents-builder/raw/main/.readme-assets/screenshot-oab-2.png"
+      },
+      {
+        name: "sample.pdf",
+        file: "./sample.pdf" // Local file path (will be encoded as data URL)
+      }
+    ]
+  }
+];
+
+// Check if the local file exists before sending
+const localFile = messages[0].experimental_attachments?.find(att => att.file);
+if (localFile && !fs.existsSync(localFile.file)) {
+  throw new Error(`Local file not found: ${localFile.file}`);
+}
+
+(async () => {
+  let collectedText = "";
+  for await (const chunk of client.chat.streamChat(messages, {
+    agentId: process.env.AGENT_ID!
+  })) {
+    if (chunk.type === 'text') {
+      collectedText += chunk.content;
+      process.stdout.write(chunk.content);
+    }
+  }
+  console.log("\nFinal response:", collectedText);
+})();
+```
+
+### Collecting Messages and Maintaining Conversation History
+
+You can use the `collectMessages` method to keep track of the conversation and continue it with context:
+
+```ts
+let messages: ChatMessage[] = [
+  { role: "user", content: "Let's talk about artificial intelligence." }
+];
+
+// First exchange
+const firstResponse = await client.chat.collectMessages(messages, {
+  agentId: process.env.AGENT_ID!
+});
+console.log("First response:", firstResponse.messages[firstResponse.messages.length - 1].content);
+
+// Continue the conversation using the collected messages
+messages = firstResponse.messages;
+messages.push({ role: "user", content: "What are the main types of machine learning?" });
+
+const secondResponse = await client.chat.collectMessages(messages, {
+  agentId: process.env.AGENT_ID!,
+  sessionId: firstResponse.sessionId || undefined
+});
+console.log("Second response:", secondResponse.messages[secondResponse.messages.length - 1].content);
+
+// Continue with another question
+messages = secondResponse.messages;
+messages.push({ role: "user", content: "Can you explain deep learning?" });
+
+const thirdResponse = await client.chat.collectMessages(messages, {
+  agentId: process.env.AGENT_ID!,
+  sessionId: secondResponse.sessionId || undefined
+});
+console.log("Third response:", thirdResponse.messages[thirdResponse.messages.length - 1].content);
+
+// Print the entire conversation history
+console.log("\nFull conversation history:");
+thirdResponse.messages.forEach((msg: ChatMessage, index: number) => {
+  console.log(`\n${index + 1}. ${msg.role.toUpperCase()}:`);
+  console.log(msg.content);
+});
+```
+
 ## Running the Examples
 
 This project includes an `example.ts` file with several usage scenarios. To run the examples:
