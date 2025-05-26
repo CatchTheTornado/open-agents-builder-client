@@ -730,8 +730,6 @@ export class ChatApi extends BaseClient {
     messages: ChatMessage[];
     sessionId: string | null;
   }> {
-    const response = await this.chat(messages, options);
-    const sessionId = response.headers.get("Agent-Session-Id");
     
     let collectedContent = "";
     
@@ -750,7 +748,7 @@ export class ChatApi extends BaseClient {
 
     return {
       messages: updatedMessages,
-      sessionId
+      sessionId: options.sessionId || null
     };
   }
 
