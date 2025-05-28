@@ -313,6 +313,13 @@ This project includes an `example.ts` file with several usage scenarios. To run 
   
   Demonstrates how to keep track of the full conversation history and continue the chat using the accumulated messages.
 
+- **Example 6: Evaluation Framework**
+  
+  Demonstrates the evaluation framework by generating test cases, running them against the agent, and adjusting a test case based on the actual result. To run only example6, use:
+  ```bash
+  yarn start --example=6
+  ```
+
 ## Contributing
 
 Feel free to open **pull requests** or **issues** if you find bugs or want to add enhancements. We welcome community contributions to improve the library.
