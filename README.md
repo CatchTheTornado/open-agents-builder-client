@@ -19,6 +19,7 @@ A TypeScript client for the [Open Agents Builder](https://www.openagentsbuilder.
   - Products & Orders (`/api/product`, `/api/order`)
   - Chat (`/api/chat`)  
   - Memory & Vector Stores (`/api/memory/*`)
+  - Evaluation Framework (`/api/agent/[id]/evals/*`)
 - **Configurable** base URL, database ID hash, and API key.
 
 ## Getting Started
@@ -321,3 +322,71 @@ Feel free to open **pull requests** or **issues** if you find bugs or want to ad
 **MIT License** © [CatchTheTornado](https://www.catchthetornado.com/)  
 
 See the [LICENSE](LICENSE) file for details.
+
+### Evaluation Framework
+
+The client provides a comprehensive evaluation framework for testing and validating agent behavior. You can generate test cases, run them against your agent, and adjust them based on actual results.
+
+#### Generate Test Cases
+
+```ts
+const { testCases } = await client.evals.generateTestCases(
+  agentId,
+  "You are a helpful assistant that can answer questions about various topics."
+);
+console.log("Generated test cases:", testCases);
+```
+
+#### Run Test Cases
+
+```ts
+const stream = await client.evals.runTestCases(agentId, testCases);
+const reader = stream.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n').filter(line => line.trim());
+
+  for (const line of lines) {
+    const update = JSON.parse(line);
+    if (update.type === 'test_case_update') {
+      const testCase = update.data;
+      console.log(`Test case ${testCase.id}:`);
+      console.log(`Status: ${testCase.status}`);
+      if (testCase.evaluation) {
+        console.log(`Score: ${testCase.evaluation.score}`);
+        console.log(`Explanation: ${testCase.evaluation.explanation}`);
+      }
+    }
+  }
+}
+```
+
+#### Adjust Test Cases
+
+If a test case fails or needs adjustment based on actual results:
+
+```ts
+const adjustedTestCase = await client.evals.adjustTestCase(
+  agentId,
+  testCaseId,
+  "This is the actual result we got"
+);
+console.log("Adjusted test case:", adjustedTestCase.testCase);
+```
+
+The evaluation framework provides:
+- Automatic test case generation based on agent prompts
+- Real-time streaming of test results
+- Detailed evaluation scores and explanations
+- Ability to adjust test cases based on actual results
+- Support for tool calls and complex conversation flows
+
+## Usage
+
+- Run all examples: `yarn start`
+- Run a specific example: `yarn start --example=6` (e.g., to run only example6)
