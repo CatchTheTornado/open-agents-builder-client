@@ -397,3 +397,7 @@ The evaluation framework provides:
 
 - Run all examples: `yarn start`
 - Run a specific example: `yarn start --example=6` (e.g., to run only example6)
+
+## Full Documentation
+
+For more detailed information, visit the [full documentation](https://docs.openagentsbuilder.com/api/1-working-with-api-client/).
