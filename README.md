@@ -385,3 +385,8 @@ The evaluation framework provides:
 - Detailed evaluation scores and explanations
 - Ability to adjust test cases based on actual results
 - Support for tool calls and complex conversation flows
+
+## Usage
+
+- Run all examples: `yarn start`
+- Run a specific example: `yarn start --example=6` (e.g., to run only example6)

@@ -224,6 +224,8 @@ async function example6() {
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    // Map to track the last status for each test case
+    const lastStatuses = new Map<string, string>();
 
     while (true) {
       const { value, done } = await reader.read();
@@ -238,8 +240,12 @@ async function example6() {
           const update = JSON.parse(line);
           if (update.type === 'test_case_update') {
             const testCase = update.data;
-            console.log(`\nTest case ${testCase.id}:`);
-            console.log(`Status: ${testCase.status}`);
+            const lastStatus = lastStatuses.get(testCase.id);
+            if (lastStatus !== testCase.status) {
+              console.log(`\nTest case ${testCase.id}:`);
+              console.log(`Status: ${testCase.status}`);
+              lastStatuses.set(testCase.id, testCase.status);
+            }
             if (testCase.evaluation) {
               console.log(`Score: ${testCase.evaluation.score}`);
               console.log(`Explanation: ${testCase.evaluation.explanation}`);
@@ -283,24 +289,44 @@ async function example6() {
 }
 
 // Run the examples
+// Usage: 
+// - Run all examples: yarn start
+// - Run a specific example: yarn start --example=6
 async function main() {
-  console.log("Running Example 1...");
-  await example1();
-  
-  console.log("Running Example 2...");
-  await example2();
-  
-  console.log("Running Example 3...");
-  await example3();
+  const args = process.argv.slice(2);
+  const exampleArg = args.find(arg => arg.startsWith('--example='));
+  const exampleToRun = exampleArg ? parseInt(exampleArg.split('=')[1], 10) : null;
 
-  console.log("Running Example 4...");
-  await example4();
+  if (exampleToRun) {
+    console.log(`Running Example ${exampleToRun}...`);
+    switch (exampleToRun) {
+      case 1: await example1(); break;
+      case 2: await example2(); break;
+      case 3: await example3(); break;
+      case 4: await example4(); break;
+      case 5: await example5(); break;
+      case 6: await example6(); break;
+      default: console.error(`Example ${exampleToRun} not found.`);
+    }
+  } else {
+    console.log("Running Example 1...");
+    await example1();
+    
+    console.log("Running Example 2...");
+    await example2();
+    
+    console.log("Running Example 3...");
+    await example3();
 
-  console.log("Running Example 5...");
-  await example5();
+    console.log("Running Example 4...");
+    await example4();
 
-  console.log("Running Example 6...");
-  await example6();
+    console.log("Running Example 5...");
+    await example5();
+
+    console.log("Running Example 6...");
+    await example6();
+  }
 }
 
 main().catch(console.error); 
