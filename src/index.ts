@@ -399,38 +399,38 @@ export class BaseClient {
     endpoint: string,
     method: "GET" | "POST" | "PUT" | "DELETE",
     body?: any,
-    queryParams?: Record<string, string|number>
+    queryParams?: Record<string, string|number>,
+    rawResponse?: boolean
   ): Promise<T> {
     let url = `${this.baseUrl}${endpoint}`;
     if (queryParams) {
-      const qs = new URLSearchParams();
-      for (const [k,v] of Object.entries(queryParams)) {
-        qs.append(k, String(v));
-      }
-      url += `?${qs.toString()}`;
+      const params = new URLSearchParams();
+      Object.entries(queryParams).forEach(([key, value]) => {
+        params.append(key, value.toString());
+      });
+      url += `?${params.toString()}`;
     }
 
-    const headers: Record<string,string> = {
-      "Authorization": `Bearer ${this.apiKey}`,
-      "database-id-hash": this.databaseIdHash
-    };
-    const options: RequestInit = { method, headers };
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`,
+        "database-id-hash": this.databaseIdHash,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
 
-    if (body && method !== "GET") {
-      headers["Content-Type"] = "application/json";
-      options.body = JSON.stringify(body);
+    if (rawResponse) {
+      return response as unknown as T;
     }
 
-    const resp = await fetch(url, options);
-    let result: any = {};
-    try {
-      result = await resp.json();
-    } catch {/* No JSON */ }
-
-    if (!resp.ok) {
-      throw new Error(`Error (${resp.status}): ${result.message || resp.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
-    return result as T;
+
+    return response.json();
   }
 }
 
@@ -652,7 +652,7 @@ export class ChatApi extends BaseClient {
     const headers: Record<string, string> = {
       "Authorization": `Bearer ${this.apiKey}`,
       "Content-Type": "application/json",
-      "Database-Id-Hash": this.databaseIdHash,
+      "database-id-hash": this.databaseIdHash,
       "Agent-Id": options.agentId,
       ...(options.sessionId ? { "Agent-Session-Id": options.sessionId } : {}),
       // Provide some helpful optional headers, can be overridden by user-provided headers later
@@ -1030,6 +1030,7 @@ export class OpenAgentsBuilderClient {
   public order: OrderApi;
   public memory: MemoryApi;
   public chat: ChatApi;
+  public evals: EvalsApi;
 
   constructor(config: OpenAgentsConfig) {
     this.agent = new AgentApi(config);
@@ -1044,6 +1045,129 @@ export class OpenAgentsBuilderClient {
     this.order = new OrderApi(config);
     this.memory = new MemoryApi(config);
     this.chat = new ChatApi(config);
+    this.evals = new EvalsApi(config);
+  }
+}
+
+/************************************************
+ * 19) EVALUATION FRAMEWORK TYPES
+ ************************************************/
+export const testCaseSchema = z.object({
+  id: z.string(),
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+    toolCalls: z.array(z.object({
+      name: z.string(),
+      arguments: z.record(z.unknown())
+    })).optional()
+  })),
+  expectedResult: z.string()
+});
+
+export const generateTestCasesSchema = z.object({
+  testCases: z.array(testCaseSchema)
+});
+
+export const evaluationSchema = z.object({
+  isCompliant: z.boolean(),
+  explanation: z.string(),
+  score: z.number().min(0).max(1)
+});
+
+export interface TestCase {
+  id: string;
+  messages: {
+    role: 'user' | 'assistant';
+    content: string;
+    toolCalls?: {
+      name: string;
+      arguments: Record<string, unknown>;
+    }[];
+  }[];
+  expectedResult: string;
+}
+
+export interface EvaluationResult {
+  isCompliant: boolean;
+  explanation: string;
+  score: number;
+}
+
+export interface TestCaseResult extends TestCase {
+  status: 'running' | 'completed' | 'warning' | 'failed';
+  actualResult?: string;
+  evaluation?: EvaluationResult;
+  conversationFlow?: {
+    messages: {
+      role: 'user' | 'assistant';
+      content: string;
+      toolCalls?: {
+        toolCallId: string;
+        toolName: string;
+        args: Record<string, unknown>;
+        result: any;
+      }[];
+    }[];
+    toolCalls?: {
+      toolCallId: string;
+      toolName: string;
+      args: Record<string, unknown>;
+      result: any;
+    }[];
+  };
+  sessionId?: string;
+  error?: string;
+}
+
+/************************************************
+ * 20) EVALUATION API
+ ************************************************/
+export class EvalsApi extends BaseClient {
+  /**
+   * Generate test cases for an agent based on its prompt
+   */
+  public async generateTestCases(agentId: string, prompt: string): Promise<{ testCases: TestCase[] }> {
+    return this.request<{ testCases: TestCase[] }>(
+      `/api/agent/${agentId}/evals/generate`,
+      "POST",
+      { prompt }
+    );
+  }
+
+  /**
+   * Run test cases against an agent and evaluate the results
+   */
+  public async runTestCases(agentId: string, testCases: TestCase[]): Promise<ReadableStream<Uint8Array>> {
+    const response = await this.request<Response>(
+      `/api/agent/${agentId}/evals/run`,
+      "POST",
+      { testCases },
+      undefined,
+      true // Pass true to get raw Response object
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to run test cases: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    if (!response.body) {
+      throw new Error("No response body received from the server");
+    }
+
+    return response.body;
+  }
+
+  /**
+   * Adjust a test case based on its actual result
+   */
+  public async adjustTestCase(agentId: string, testCaseId: string, actualResult: string): Promise<{ testCase: TestCaseResult }> {
+    return this.request<{ testCase: TestCaseResult }>(
+      `/api/agent/${agentId}/evals/adjust`,
+      "POST",
+      { testCaseId, actualResult }
+    );
   }
 }
 

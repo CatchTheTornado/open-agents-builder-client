@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { OpenAgentsBuilderClient, ChatMessage } from "./src/index";
+import { OpenAgentsBuilderClient, ChatMessage, TestCase } from "./src/index";
 import { nanoid } from 'nanoid';
 import * as fs from 'fs';
 
@@ -208,6 +208,80 @@ async function example5() {
   }
 }
 
+// Example 6: Using the evaluation framework
+async function example6() {
+  try {
+    // Generate test cases for an agent
+    const { testCases } = await client.evals.generateTestCases(
+      process.env.AGENT_ID!,
+      "You are a helpful assistant that can answer questions about various topics."
+    );
+
+    console.log("Generated test cases:", testCases);
+
+    // Run the test cases
+    const stream = await client.evals.runTestCases(process.env.AGENT_ID!, testCases);
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex;
+      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, newlineIndex).trim();
+        buffer = buffer.slice(newlineIndex + 1);
+        if (!line) continue;
+        try {
+          const update = JSON.parse(line);
+          if (update.type === 'test_case_update') {
+            const testCase = update.data;
+            console.log(`\nTest case ${testCase.id}:`);
+            console.log(`Status: ${testCase.status}`);
+            if (testCase.evaluation) {
+              console.log(`Score: ${testCase.evaluation.score}`);
+              console.log(`Explanation: ${testCase.evaluation.explanation}`);
+            }
+            if (testCase.error) {
+              console.error(`\x1b[31mError: ${testCase.error}\x1b[0m`); // Red color
+            }
+          } else if (update.type === 'error') {
+            console.error(`\x1b[31mServer error: ${update.message || JSON.stringify(update)}\x1b[0m`);
+          }
+        } catch (e) {
+          // If not valid JSON, buffer it for the next chunk
+          // Only show error if buffer is empty (i.e., this is a real parse error, not a partial)
+          if (buffer.length === 0) {
+            console.error(`\x1b[31mError parsing update: ${e instanceof Error ? e.message : e}\x1b[0m`);
+            console.error(`\x1b[33mRaw line: ${line}\x1b[0m`); // Yellow color for raw line
+          } else {
+            // Partial JSON, wait for more data
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+    }
+
+    // Adjust a test case if needed
+    const testCaseToAdjust = testCases[0];
+    const adjustedTestCase = await client.evals.adjustTestCase(
+      process.env.AGENT_ID!,
+      testCaseToAdjust.id,
+      "This is the actual result we got"
+    );
+
+    console.log("\nAdjusted test case:", adjustedTestCase.testCase);
+  } catch (error) {
+    console.error("\x1b[41m\x1b[37m[EXAMPLE6 ERROR]\x1b[0m", error instanceof Error ? error.message : error);
+    if (error && typeof error === 'object' && 'stack' in error) {
+      console.error(error.stack);
+    }
+  }
+}
+
 // Run the examples
 async function main() {
   console.log("Running Example 1...");
@@ -224,6 +298,9 @@ async function main() {
 
   console.log("Running Example 5...");
   await example5();
+
+  console.log("Running Example 6...");
+  await example6();
 }
 
 main().catch(console.error); 
